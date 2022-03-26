@@ -19,7 +19,7 @@ try
 
     var driver = new ChromeDriver(chromeOptions);
 
-    EnsureOutputDirExists(OUTPUT_DIR);
+    EnsureDirExists(OUTPUT_DIR);
 
     driver.Navigate().GoToUrl(AZURE_DEVOPS_WIKI_URL);
 
@@ -44,44 +44,39 @@ void SaveItemsRecursively(ChromeDriver driver, IWebElement element, string path,
     // Navigate to element
     element.Click();
 
-    // We need to look ahead to see if there are any children.
-    // If there are children we will create a directory
     var nextLevel = level + 1;
-    var subLevetItems = GetSubLevelItems(driver, nextLevel);
+    var subLevetItems = GetSubLevelItems(driver, level: nextLevel);
+    var hasChildren = subLevetItems.Any();
 
     var currentTitle = element.FindElement(SELECTORS.ITEM_TITLE).Text;
-
     var absoluteFilePath = Path.Combine(path, currentTitle);
 
-    var absoluteFilename = absoluteFilePath;    
-
-    if (subLevetItems.Any())
+    if (hasChildren)
     {
-        // If there are sub items then the item should be put inside the same folder
-        var subDirectory = Path.Combine(path, currentTitle);
-
-        if (!Directory.Exists(absoluteFilePath))
-        {
-            Directory.CreateDirectory(absoluteFilePath);
-        }
-
-        absoluteFilename = Path.Combine(absoluteFilePath, currentTitle);
+        EnsureDirExists(absoluteFilePath);
     }
 
     OpenPrintDialog(driver);
 
     // Let page render before we attempt to print
     Thread.Sleep(1000);
-    HandlePrintDialog(absoluteFilename);
+
+    // If the current page has children, then the current item itself must be placed in the same directory as its children
+    // Example:
+    // Parent              ->   Parent/Parent.pdf
+    //   - Children 1      ->   Parent/Children 1.pdf  
+    //   - Children 2      ->   Parent/Children 2.pdf
+    var absolutePathForCurrentItem = hasChildren ? Path.Combine(absoluteFilePath, currentTitle) : absoluteFilePath;
+    HandlePrintDialog(absolutePath: absolutePathForCurrentItem);
 
     foreach (var sublevelMenu in subLevetItems)
     {
         SaveItemsRecursively(driver, sublevelMenu, path: absoluteFilePath, level: nextLevel);
     }
-
-    // Close the current menu
-    if (subLevetItems.Any())
+    
+    if (hasChildren)
     {
+        // Close the current menu
         element.FindElement(SELECTORS.ITEM_EXPANDABLE_ARROW).Click();
     }
 }
@@ -126,13 +121,10 @@ void HandlePrintDialog(string absolutePath)
     sim.Keyboard.KeyPress(VirtualKeyCode.RETURN);
 }
 
-void EnsureOutputDirExists(string outputDir) {  
-    
-    var outputDirExists = Directory.Exists(outputDir);
-
-    if (!outputDirExists)
+void EnsureDirExists(string dir) {      
+    if (!Directory.Exists(dir))
     {
-        Directory.CreateDirectory(outputDir);
+        Directory.CreateDirectory(dir);
     }
 }
 
