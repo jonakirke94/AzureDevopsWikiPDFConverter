@@ -64,8 +64,8 @@ void SaveItemsRecursively(ChromeDriver driver, IWebElement element, string path,
     // If the current page has children, then the current item itself must be placed in the same directory as its children
     // Example:
     // Parent              ->   Parent/Parent.pdf
-    //   - Children 1      ->   Parent/Children 1.pdf  
-    //   - Children 2      ->   Parent/Children 2.pdf
+    //   - Child 1      ->   Parent/Child 1.pdf  
+    //   - Child 2      ->   Parent/Child 2.pdf
     var absolutePathForCurrentItem = hasChildren ? Path.Combine(absoluteFilePath, currentTitle) : absoluteFilePath;
     HandlePrintDialog(absolutePath: absolutePathForCurrentItem);
 
